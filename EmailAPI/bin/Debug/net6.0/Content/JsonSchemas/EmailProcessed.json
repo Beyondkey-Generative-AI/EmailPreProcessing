@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "EmailId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "EmailUniqueId": {
+      "type": "string"
+    },
+    "EmailCreatedDateTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "HasAttachment": {
+      "type": "boolean"
+    },
+    "FromName": {
+      "type": "string"
+    },
+    "FromEmailAddress": {
+      "type": "string",
+      "maxLength": 50,
+      "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+    },
+    "conversationId": {
+      "type": "string"
+    },
+    "parentFolderId": {
+      "type": "string"
+    },
+    "isRead": {
+      "type": "boolean"
+    },
+    "EmailCategory": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "Body": {
+      "type": "string"
+    },
+    "Subject": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "Summary": {
+      "type": "string"
+    },
+    "Sentiment": {
+      "type": "string",
+      "maxLength": 50
+    },
+    "Entities": {
+      "type": "string"
+    },
+    "Attachments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/EmailAttachment"
+      }
+    }
+  },
+  "required": [ "EmailId", "EmailUniqueId", "EmailCreatedDateTime", "FromName", "FromEmailAddress", "Body", "Subject" ],
+  "definitions": {
+    "EmailAttachment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "ID": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "FilePath": {
+          "type": "string"
+        },
+        "FileName": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "EmailId": {
+          "type": "string",
+          "format": "uuid" // This property relates back to the Email
+        }
+      },
+      "required": [ "ID", "FilePath", "FileName", "EmailId" ]
+    }
+  }
+}

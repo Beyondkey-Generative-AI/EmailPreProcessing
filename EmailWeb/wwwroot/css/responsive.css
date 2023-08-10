@@ -1,0 +1,19 @@
+@media (max-width:767px){
+    .login-left, .login-right {
+        width: 100%;
+    }
+    .login-wrapper .login-logo {
+        position: static;
+        padding: 20px;
+    }
+    .login-wrapper h1 {
+        height: auto;
+        padding: 20px;
+        padding-top: 0;
+        font-size: 30px;
+        line-height: normal;
+    }
+    .login-form {
+        padding: 20px;
+    }
+}

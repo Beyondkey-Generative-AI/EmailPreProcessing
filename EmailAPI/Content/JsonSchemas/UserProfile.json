@@ -1,0 +1,80 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "UserProfile": {
+        "type": "object",
+        "properties": {
+          "ID": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "FirstName": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "LastName": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "Email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 50
+          },
+          "UserName": {
+            "type": "string",
+            "maxLength": 30
+          },
+          "Password": {
+            "type": "string",
+            "maxLength": 30
+          },
+          "IsActive": {
+            "type": "boolean"
+          },
+          "Date_Created": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "Date_Modified": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "OrgId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": ["ID", "FirstName", "LastName", "Email", "IsActive", "OrgId"]
+      },
+      "Organization": {
+        "type": "object",
+        "properties": {
+          "ID": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "OrgName": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "Address": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "Date_Created": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "Date_Modified": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["ID", "OrgName", "Address"]
+      }
+    },
+    "required": ["UserProfile", "Organization"]
+  }
+  

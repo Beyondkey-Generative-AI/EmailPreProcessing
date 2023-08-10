@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "FZh65qvpxzVekERDW/TkBibSrfH4JzcBxtBJcFTMgvM=",
+  "Source": "EmailManagementAPI",
+  "BasePath": "_content/EmailManagementAPI",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}

@@ -1,0 +1,91 @@
+﻿
+@{
+    ViewData["Title"] = "Login";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<style type="text/css">
+    .header, .footer {
+        display: none;
+    }
+</style>
+<div class="login-wrapper">
+    <div class="login-left">
+        <div class="login-logo">
+            Logo
+        </div>
+        <h1>
+            Customer Service Reimagined with AI - Knowledge Driven Customer Support
+        </h1>
+    </div>
+    <div class="login-right">
+        <div class="login-form">
+            <h2>Login</h2>
+            <div id="loginMessage" class="show-alert"></div>
+                <div class="mb-3">
+                    <input type="text" class="form-control" name="username" id="username" placeholder="Email Address" required />
+                </div>
+                <div class="mb-3">
+                    <input type="password" class="form-control" placeholder="Password" name="password" id="password" required />
+                </div>
+                <div class="login-check">
+                    <div class="lgcheckbox">
+                        <input type="checkbox" class="form-check-input" id="exampleCheck1">
+                        <label class="form-check-label" for="exampleCheck1">Remember Me</label>
+                    </div>
+                    <div class="login-forget">
+                        <a href="">Forgot Password ?</a>
+                    </div>
+                </div>
+                <div class="login-submit">
+                    <button type="button" id="loginButton" class="btn btn-primary">Login</button>
+                </div>            
+        </div>
+    </div>
+</div>
+
+
+
+@section scripts {
+    <script>
+        document.getElementById("loginButton").addEventListener("click", function () {
+            var username = document.getElementById("username").value;
+            var password = document.getElementById("password").value;
+            
+            
+            // Prepare data to send to the API
+            var requestData = {
+                username: username,
+                password: password
+            };
+            // Get the current hostname and port dynamically
+            var currentHost = window.location.hostname;
+            var currentPort =5213;// window.location.port;
+
+            // Construct the API URL using the detected port
+            var apiUrl = "http://" + currentHost;
+            if (currentPort) {
+                apiUrl += ":" + currentPort;
+            }
+            apiUrl += "/api/login"; // Replace with your API endpoint
+
+            // Make an AJAX call to the API
+            $.ajax({
+                url: apiUrl, // Replace this with your actual API endpoint
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(requestData),
+                success: function (data) {
+                    // Handle the API response here
+                    // For example, show a success message and redirect to another page
+                   // $("#loginMessage").text("Login successful!");
+                    window.location.href = "/home/index";
+                },
+                error: function (error) {
+                    // Handle any error that occurs during the API call
+                    // For example, display an error message
+                    $("#loginMessage").text("Login failed. Please check your credentials.");
+                }
+            });
+        });
+    </script>
+}
