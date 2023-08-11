@@ -3,10 +3,12 @@ using Microsoft.Identity.Client;
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
 using Azure.Storage.Blobs;
-using Newtonsoft.Json;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.IO;
 using System.Text;
+using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Table;
 
 namespace EmailManagementAPI.Controllers
 {
@@ -15,6 +17,14 @@ namespace EmailManagementAPI.Controllers
     [ApiController]
     public class EmailController : Controller
     {
+        private readonly IConfiguration _configuration;
+
+        public EmailController(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
+
+
         [HttpGet]
         [Route("GetSharedEmail")]
         [ProducesResponseType(200, Type = typeof(string))]
@@ -42,7 +52,8 @@ namespace EmailManagementAPI.Controllers
 
                     if (response.IsSuccessStatusCode)
                     {
-
+                        string connectionString = _configuration.GetConnectionString("BlobStorageConnection");
+                        string containerName = _configuration.GetSection("StorageContainer:ContainerProcessedEmail").Value;
                         var content = await response.Content.ReadAsStringAsync();
 
                         // Deserialize the JSON response into objects
@@ -50,7 +61,7 @@ namespace EmailManagementAPI.Controllers
 
                         // Initialize a list to store the filtered attributes
                         var filteredAttributesList = new List<dynamic>();
-
+                      
                         foreach (var message in messages.value)
                         {// Extract the 'To' information from recipients array
                             var recipients = message.toRecipients;
@@ -83,22 +94,7 @@ namespace EmailManagementAPI.Controllers
                             };
 
                             filteredAttributesList.Add(filteredAttributes);
-                            await UploadJsonToBlobAsync(filteredAttributes);
-
-                            //code to drop json file to folder
-                            //// Convert the current element to JSON
-                            //var filteredJson = JsonConvert.SerializeObject(filteredAttributes);
-                            //// Create the "jsonfiles" directory within the project folder if it doesn't exist
-                            //var directoryPath = Path.Combine(Directory.GetCurrentDirectory(), "JsonEmailFiles");
-                            //Directory.CreateDirectory(directoryPath);
-                            //// Generate a unique file name for each JSON file based on EmailUniqueId
-                            //var emailUniqueId = filteredAttributes.EmailUniqueId;
-                            //var fileName = $"{emailUniqueId}.json";
-
-                            //// Write the JSON content to a separate file for each element
-                            //var filePath = Path.Combine(directoryPath, fileName);
-                            //await System.IO.File.WriteAllTextAsync(filePath, filteredJson);
-
+                            await UploadJsonToBlobAsync(filteredAttributes, connectionString,containerName);
                         }
 
                         // Convert the list of filtered attributes to JSON
@@ -118,14 +114,11 @@ namespace EmailManagementAPI.Controllers
             }
             catch (Exception ex) { return BadRequest(ex.Message); }
         }
-        async Task UploadJsonToBlobAsync(dynamic filteredAttributes)
+       
+        async Task UploadJsonToBlobAsync(dynamic filteredAttributes,string connectionString,string containerName)
         {
             // Convert the current element to JSON
             var filteredJson = JsonConvert.SerializeObject(filteredAttributes);
-
-            // Get your Azure Blob Storage connection string and container name
-            string connectionString = "DefaultEndpointsProtocol=https;AccountName=emailpreprocessing;AccountKey=M0pc8WggYT4DAYfRJMSiyohi+JzxQHP3xf3wSBfA1DCY11oeY5BkLRbpflcG9CIanpO6SKnCEl9Q+AStlPbKEQ==;EndpointSuffix=core.windows.net";
-            string containerName = "preprocessedemailjsons";
 
             // Create a blob client and container
             BlobServiceClient blobServiceClient = new BlobServiceClient(connectionString);
@@ -142,9 +135,19 @@ namespace EmailManagementAPI.Controllers
             // Upload the JSON content to Azure Blob Storage
             BlobClient blobClient = containerClient.GetBlobClient(blobName);
             await blobClient.UploadAsync(new MemoryStream(Encoding.UTF8.GetBytes(filteredJson)), true);
-
-            // Note: Make sure to handle exceptions and error handling appropriately in your actual code
         }
+
+        //async Task SaveEmailProcessed(dynamic filteredAttributes)
+        //{
+        //    string storageConnectionString = "DefaultEndpointsProtocol=https;AccountName=emailpreprocessing;AccountKey=M0pc8WggYT4DAYfRJMSiyohi+JzxQHP3xf3wSBfA1DCY11oeY5BkLRbpflcG9CIanpO6SKnCEl9Q+AStlPbKEQ==;EndpointSuffix=core.windows.net";
+        //    CloudStorageAccount storageAccount = CloudStorageAccount.Parse(storageConnectionString);
+        //    CloudTableClient tableClient = storageAccount.CreateCloudTableClient(new Microsoft.Azure.Cosmos.Table.TableClientConfiguration());
+
+        //    // Create a reference to the table
+        //    CloudTable table = tableClient.GetTableReference("YourTableName");
+
+        //}
+
         private async Task<string> GetAccessToken()
         {
             //string clientId = "api://82f931e4-60f4-49e9-9ef9-22d1ee859aa6";

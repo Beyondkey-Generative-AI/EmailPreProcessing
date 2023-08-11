@@ -274,3 +274,11 @@ E:\GitHubProjects\EmailManagement\EmailAPI\obj\Debug\net6.0\refint\EmailManageme
 E:\GitHubProjects\EmailManagement\EmailAPI\obj\Debug\net6.0\EmailManagementAPI.pdb
 E:\GitHubProjects\EmailManagement\EmailAPI\obj\Debug\net6.0\EmailManagementAPI.genruntimeconfig.cache
 E:\GitHubProjects\EmailManagement\EmailAPI\obj\Debug\net6.0\ref\EmailManagementAPI.dll
+E:\GitHubProjects\EmailManagement\EmailAPI\bin\Debug\net6.0\Microsoft.Azure.Cosmos.Table.dll
+E:\GitHubProjects\EmailManagement\EmailAPI\bin\Debug\net6.0\Microsoft.Azure.DocumentDB.Core.dll
+E:\GitHubProjects\EmailManagement\EmailAPI\bin\Debug\net6.0\Microsoft.OData.Core.dll
+E:\GitHubProjects\EmailManagement\EmailAPI\bin\Debug\net6.0\Microsoft.OData.Edm.dll
+E:\GitHubProjects\EmailManagement\EmailAPI\bin\Debug\net6.0\Microsoft.Spatial.dll
+E:\GitHubProjects\EmailManagement\EmailAPI\bin\Debug\net6.0\Microsoft.WindowsAzure.Storage.dll
+E:\GitHubProjects\EmailManagement\EmailAPI\bin\Debug\net6.0\runtimes\win7-x64\native\Cosmos.CRTCompat.dll
+E:\GitHubProjects\EmailManagement\EmailAPI\bin\Debug\net6.0\runtimes\win7-x64\native\Microsoft.Azure.Documents.ServiceInterop.dll
