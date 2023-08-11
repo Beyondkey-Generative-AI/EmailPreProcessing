@@ -21,97 +21,102 @@ namespace EmailManagementAPI.Controllers
         [ProducesResponseType(400, Type = typeof(string))]
         public async Task<ActionResult> GetSharedEmail()
         {
-            var graphApiEndpoint = "https://graph.microsoft.com/v1.0";
-            var sharedMailboxId = "emailpreprocessing@beyondkey.com";
-            var accessToken = await GetAccessToken();
-            using (var httpClient = new HttpClient())
+            try
             {
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                var graphApiEndpoint = "https://graph.microsoft.com/v1.0";
+                var sharedMailboxId = "emailpreprocessing@beyondkey.com";
+                var accessToken = await GetAccessToken();
+                using (var httpClient = new HttpClient())
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-                // Calculate the date range for 1 day ago
-                DateTime oneDayAgo = DateTime.UtcNow.AddHours(-5);
-                string formattedDate = oneDayAgo.ToString("yyyy-MM-ddTHH:mm:ssZ");
+                    // Calculate the date range for 1 day ago
+                    DateTime oneDayAgo = DateTime.UtcNow.AddDays(-1);
+                    string formattedDate = oneDayAgo.ToString("yyyy-MM-ddTHH:mm:ssZ");
 
-                //var requestUrl = $"{graphApiEndpoint}/users/{sharedMailboxId}/messages?$filter=receivedDateTime ge {formattedDate}";
-                
-                var requestUrl = $"{graphApiEndpoint}/users/{sharedMailboxId}/messages?$filter=receivedDateTime ge {formattedDate}";
+                    //var requestUrl = $"{graphApiEndpoint}/users/{sharedMailboxId}/messages?$filter=receivedDateTime ge {formattedDate}";
 
-                var response = await httpClient.GetAsync(requestUrl);
+                    var requestUrl = $"{graphApiEndpoint}/users/{sharedMailboxId}/messages?$filter=receivedDateTime ge {formattedDate}";
 
-                if (response.IsSuccessStatusCode)
-                {  
+                    var response = await httpClient.GetAsync(requestUrl);
 
-                    var content = await response.Content.ReadAsStringAsync();
+                    if (response.IsSuccessStatusCode)
+                    {
 
-                    // Deserialize the JSON response into objects
-                    var messages = JsonConvert.DeserializeObject<dynamic>(content);
+                        var content = await response.Content.ReadAsStringAsync();
 
-                    // Initialize a list to store the filtered attributes
-                    var filteredAttributesList = new List<dynamic>();
+                        // Deserialize the JSON response into objects
+                        var messages = JsonConvert.DeserializeObject<dynamic>(content);
 
-                    foreach (var message in messages.value)
-                    {// Extract the 'To' information from recipients array
-                        var recipients = message.toRecipients;
-                        string toName = "";
-                        var toEmailAddress = "";
-                        if (recipients != null && recipients.HasValues)
-                        {
-                            // For simplicity, assuming there's only one recipient in 'To' field.
-                            // If there can be multiple recipients, you may need to adjust the logic accordingly.
-                            toName = recipients[0]?.emailAddress?.name;
-                            toEmailAddress = recipients[0]?.emailAddress?.address;
+                        // Initialize a list to store the filtered attributes
+                        var filteredAttributesList = new List<dynamic>();
+
+                        foreach (var message in messages.value)
+                        {// Extract the 'To' information from recipients array
+                            var recipients = message.toRecipients;
+                            string toName = "";
+                            var toEmailAddress = "";
+                            if (recipients != null && recipients.HasValues)
+                            {
+                                // For simplicity, assuming there's only one recipient in 'To' field.
+                                // If there can be multiple recipients, you may need to adjust the logic accordingly.
+                                toName = recipients[0]?.emailAddress?.name;
+                                toEmailAddress = recipients[0]?.emailAddress?.address;
+                            }
+                            if (toEmailAddress.Trim().ToLower() != "contact@beyondkey.com") continue;
+                            // Extract the desired attributes from each message
+                            var filteredAttributes = new
+                            {
+                                EmailId = Guid.NewGuid(),
+                                EmailUniqueId = message.id,
+                                EmailCreatedDateTime = message.receivedDateTime,
+                                HasAttachment = message.hasAttachments,
+                                FromName = "Deepak Sharma",// message.from?.emailAddress?.name,
+                                FromEmailAddress = "deepak.sharma@beyondkey.com",// message.from?.emailAddress?.address,
+                                ToName = toName,
+                                ToEmailAddress = toEmailAddress,
+                                conversationId = message.conversationId,
+                                parentFolderId = message.parentFolderId,
+                                isRead = message.isRead,
+                                Body = message.body.content,
+                                Subject = message.subject
+                            };
+
+                            filteredAttributesList.Add(filteredAttributes);
+                            await UploadJsonToBlobAsync(filteredAttributes);
+
+                            //code to drop json file to folder
+                            //// Convert the current element to JSON
+                            //var filteredJson = JsonConvert.SerializeObject(filteredAttributes);
+                            //// Create the "jsonfiles" directory within the project folder if it doesn't exist
+                            //var directoryPath = Path.Combine(Directory.GetCurrentDirectory(), "JsonEmailFiles");
+                            //Directory.CreateDirectory(directoryPath);
+                            //// Generate a unique file name for each JSON file based on EmailUniqueId
+                            //var emailUniqueId = filteredAttributes.EmailUniqueId;
+                            //var fileName = $"{emailUniqueId}.json";
+
+                            //// Write the JSON content to a separate file for each element
+                            //var filePath = Path.Combine(directoryPath, fileName);
+                            //await System.IO.File.WriteAllTextAsync(filePath, filteredJson);
+
                         }
-                        if (toEmailAddress.Trim().ToLower() != "contact@beyondkey.com") continue;
-                        // Extract the desired attributes from each message
-                        var filteredAttributes = new
-                        {
-                            EmailId= Guid.NewGuid(),
-                            EmailUniqueId = message.id,
-                            EmailCreatedDateTime = message.receivedDateTime,
-                            HasAttachment = message.hasAttachments,
-                            FromName ="Deepak Sharma",// message.from?.emailAddress?.name,
-                            FromEmailAddress ="deepak.sharma@beyondkey.com",// message.from?.emailAddress?.address,
-                            ToName = toName,
-                            ToEmailAddress = toEmailAddress,
-                            conversationId = message.conversationId,
-                            parentFolderId = message.parentFolderId,
-                            isRead = message.isRead,
-                            Body = message.body.content,
-                            Subject = message.subject
-                         };
 
-                        filteredAttributesList.Add(filteredAttributes);
-                        await UploadJsonToBlobAsync(filteredAttributes);
-                        
-                        //code to drop json file to folder
-                        //// Convert the current element to JSON
-                        //var filteredJson = JsonConvert.SerializeObject(filteredAttributes);
-                        //// Create the "jsonfiles" directory within the project folder if it doesn't exist
-                        //var directoryPath = Path.Combine(Directory.GetCurrentDirectory(), "JsonEmailFiles");
-                        //Directory.CreateDirectory(directoryPath);
-                        //// Generate a unique file name for each JSON file based on EmailUniqueId
-                        //var emailUniqueId = filteredAttributes.EmailUniqueId;
-                        //var fileName = $"{emailUniqueId}.json";
+                        // Convert the list of filtered attributes to JSON
+                        var filteredJsonList = JsonConvert.SerializeObject(filteredAttributesList);
 
-                        //// Write the JSON content to a separate file for each element
-                        //var filePath = Path.Combine(directoryPath, fileName);
-                        //await System.IO.File.WriteAllTextAsync(filePath, filteredJson);
-
+                        // Return the filtered JSON response
+                        return Ok(filteredJsonList);
+                    }
+                    else
+                    {
+                        // Handle the error response
+                        var errorMessage = await response.Content.ReadAsStringAsync();
+                        return BadRequest(errorMessage);
                     }
 
-                    // Convert the list of filtered attributes to JSON
-                    var filteredJsonList = JsonConvert.SerializeObject(filteredAttributesList);
-
-                    // Return the filtered JSON response
-                    return Ok(filteredJsonList);
-                }
-                else
-                {
-                    // Handle the error response
-                    var errorMessage = await response.Content.ReadAsStringAsync();
-                    return BadRequest(errorMessage);
                 }
             }
+            catch (Exception ex) { return BadRequest(ex.Message); }
         }
         async Task UploadJsonToBlobAsync(dynamic filteredAttributes)
         {
