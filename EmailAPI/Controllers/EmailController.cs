@@ -68,7 +68,7 @@ namespace EmailManagementAPI.Controllers
 
                         // Initialize a list to store the filtered attributes
                         var filteredAttributesList = new List<dynamic>();
-                      
+
                         foreach (var message in messages.value)
                         {// Extract the 'To' information from recipients array
                             var recipients = message.toRecipients;
@@ -100,15 +100,15 @@ namespace EmailManagementAPI.Controllers
                             };
 
                             filteredAttributesList.Add(filteredAttributes);
-                            await UploadJsonToBlobAsync(filteredAttributes, containerClient);
                         }
 
                         // Convert the list of filtered attributes to JSON
                         var filteredJsonList = JsonConvert.SerializeObject(filteredAttributesList);
-                       
-                        // Save the filtered JSON list to Azure Table Storage
-                        await SaveJsonToTableStorage(filteredJsonList, tableClient);
-
+                        foreach (var filteredAttributes in filteredAttributesList)
+                        {
+                            var ActualEmailBlobUrl = await UploadJsonToBlobAsync(filteredAttributes, containerClient);
+                            await SaveJsonToTableStorage(filteredAttributes, ActualEmailBlobUrl, tableClient);
+                        }
 
                         // Return the filtered JSON response
                         return Ok(filteredJsonList);
@@ -124,8 +124,8 @@ namespace EmailManagementAPI.Controllers
             }
             catch (Exception ex) { return BadRequest(ex.Message); }
         }
-       
-        async Task UploadJsonToBlobAsync(dynamic filteredAttributes,BlobContainerClient containerClient)
+
+        async Task<string> UploadJsonToBlobAsync(dynamic filteredAttributes, BlobContainerClient containerClient)
         {
             // Convert the current element to JSON
             var filteredJson = JsonConvert.SerializeObject(filteredAttributes);
@@ -140,34 +140,44 @@ namespace EmailManagementAPI.Controllers
             // Upload the JSON content to Azure Blob Storage
             BlobClient blobClient = containerClient.GetBlobClient(blobName);
             await blobClient.UploadAsync(new MemoryStream(Encoding.UTF8.GetBytes(filteredJson)), true);
+            // Get the URL of the uploaded blob
+            string blobUrl = blobClient.Uri.ToString();
+            return blobUrl;
         }
 
-        private async Task SaveJsonToTableStorage(string jsonArray, CloudTableClient tableClient)
+
+        private async Task SaveJsonToTableStorage(dynamic filteredAttributes,dynamic ActualEmailBlobUrl, CloudTableClient tableClient)
         {
-            // Create or reference a table in Azure Table Storage
-            CloudTable table = tableClient.GetTableReference("EmailProcessed");
-            await table.CreateIfNotExistsAsync();
+                // Create or reference a table in Azure Table Storage
+                CloudTable table = tableClient.GetTableReference("EmailProcessed");
+                await table.CreateIfNotExistsAsync();
 
-            // Deserialize the JSON array to a list of dictionaries
-            var dataList = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(jsonArray);
-            TableBatchOperation batchOperation = new TableBatchOperation();
-            // Insert each dictionary as a separate entity
-            foreach (var data in dataList)
-            {
-                string rowKey = data.ContainsKey("EmailUniqueId") ? data["EmailUniqueId"].ToString() : "Unknown";
-                string partitionKey = data.ContainsKey("ToEmailAddress") ? data["ToEmailAddress"].ToString() : "Unknown";
+                // Extract properties from the filteredAttributes object
+                string rowKey = filteredAttributes.EmailUniqueId;
+                string partitionKey = filteredAttributes.ToEmailAddress;
                 DynamicTableEntity entity = new DynamicTableEntity(partitionKey, rowKey);
+                var propertyName = "ActualEmailJsonLink";
+                var propertyValue = ActualEmailBlobUrl;
+                entity.Properties.Add(propertyName, EntityProperty.CreateEntityPropertyFromObject(propertyValue));
 
-                // Add properties to the entity dynamically
-                foreach (var kvp in data)
+                foreach (var property in filteredAttributes.GetType().GetProperties())
                 {
-                    entity.Properties.Add(kvp.Key, EntityProperty.CreateEntityPropertyFromObject(kvp.Value));
+                    propertyName = property.Name;
+                    propertyValue = property.GetValue(filteredAttributes, null);
+                    if (property.Name == "Body")
+                    {
+                        string truncatedValue = propertyValue != null ? propertyValue.ToString().Substring(0, Math.Min(propertyValue.ToString().Length, 200)) : string.Empty;
+                        entity.Properties.Add(propertyName, EntityProperty.CreateEntityPropertyFromObject(truncatedValue));
+                    }
+                    else
+                        entity.Properties.Add(propertyName, EntityProperty.CreateEntityPropertyFromObject(propertyValue));
                 }
 
-                batchOperation.Insert(entity);
-            }
-            await table.ExecuteBatchAsync(batchOperation);
+                TableOperation insertOperation = TableOperation.Insert(entity);
+
+                await table.ExecuteAsync(insertOperation);
         }
+
 
         private async Task<string> GetAccessToken()
         {
@@ -194,7 +204,7 @@ namespace EmailManagementAPI.Controllers
 
             return authenticationResult.AccessToken;
         }
-       
+
     }
 }
 
