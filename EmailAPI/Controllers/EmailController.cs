@@ -10,6 +10,7 @@ using System.Text;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
 
+
 namespace EmailManagementAPI.Controllers
 {
 
@@ -53,7 +54,13 @@ namespace EmailManagementAPI.Controllers
                     if (response.IsSuccessStatusCode)
                     {
                         string connectionString = _configuration.GetConnectionString("BlobStorageConnection");
+                        CloudStorageAccount storageAccount = CloudStorageAccount.Parse(connectionString);
+                        CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
+
                         string containerName = _configuration.GetSection("StorageContainer:ContainerProcessedEmail").Value;
+                        BlobServiceClient blobServiceClient = new BlobServiceClient(connectionString);
+                        BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(containerName);
+
                         var content = await response.Content.ReadAsStringAsync();
 
                         // Deserialize the JSON response into objects
@@ -78,7 +85,6 @@ namespace EmailManagementAPI.Controllers
                             // Extract the desired attributes from each message
                             var filteredAttributes = new
                             {
-                                EmailId = Guid.NewGuid(),
                                 EmailUniqueId = message.id,
                                 EmailCreatedDateTime = message.receivedDateTime,
                                 HasAttachment = message.hasAttachments,
@@ -94,11 +100,15 @@ namespace EmailManagementAPI.Controllers
                             };
 
                             filteredAttributesList.Add(filteredAttributes);
-                            await UploadJsonToBlobAsync(filteredAttributes, connectionString,containerName);
+                            await UploadJsonToBlobAsync(filteredAttributes, containerClient);
                         }
 
                         // Convert the list of filtered attributes to JSON
                         var filteredJsonList = JsonConvert.SerializeObject(filteredAttributesList);
+                       
+                        // Save the filtered JSON list to Azure Table Storage
+                        await SaveJsonToTableStorage(filteredJsonList, tableClient);
+
 
                         // Return the filtered JSON response
                         return Ok(filteredJsonList);
@@ -115,15 +125,10 @@ namespace EmailManagementAPI.Controllers
             catch (Exception ex) { return BadRequest(ex.Message); }
         }
        
-        async Task UploadJsonToBlobAsync(dynamic filteredAttributes,string connectionString,string containerName)
+        async Task UploadJsonToBlobAsync(dynamic filteredAttributes,BlobContainerClient containerClient)
         {
             // Convert the current element to JSON
             var filteredJson = JsonConvert.SerializeObject(filteredAttributes);
-
-            // Create a blob client and container
-            BlobServiceClient blobServiceClient = new BlobServiceClient(connectionString);
-            BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(containerName);
-
             // Generate a unique blob name for each JSON file based on EmailUniqueId
             var emailUniqueId = filteredAttributes.EmailUniqueId;
             DateTime currentDate = DateTime.UtcNow.Date;
@@ -137,16 +142,32 @@ namespace EmailManagementAPI.Controllers
             await blobClient.UploadAsync(new MemoryStream(Encoding.UTF8.GetBytes(filteredJson)), true);
         }
 
-        //async Task SaveEmailProcessed(dynamic filteredAttributes)
-        //{
-        //    string storageConnectionString = "DefaultEndpointsProtocol=https;AccountName=emailpreprocessing;AccountKey=M0pc8WggYT4DAYfRJMSiyohi+JzxQHP3xf3wSBfA1DCY11oeY5BkLRbpflcG9CIanpO6SKnCEl9Q+AStlPbKEQ==;EndpointSuffix=core.windows.net";
-        //    CloudStorageAccount storageAccount = CloudStorageAccount.Parse(storageConnectionString);
-        //    CloudTableClient tableClient = storageAccount.CreateCloudTableClient(new Microsoft.Azure.Cosmos.Table.TableClientConfiguration());
+        private async Task SaveJsonToTableStorage(string jsonArray, CloudTableClient tableClient)
+        {
+            // Create or reference a table in Azure Table Storage
+            CloudTable table = tableClient.GetTableReference("EmailProcessed");
+            await table.CreateIfNotExistsAsync();
 
-        //    // Create a reference to the table
-        //    CloudTable table = tableClient.GetTableReference("YourTableName");
+            // Deserialize the JSON array to a list of dictionaries
+            var dataList = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(jsonArray);
+            TableBatchOperation batchOperation = new TableBatchOperation();
+            // Insert each dictionary as a separate entity
+            foreach (var data in dataList)
+            {
+                string rowKey = data.ContainsKey("EmailUniqueId") ? data["EmailUniqueId"].ToString() : "Unknown";
+                string partitionKey = data.ContainsKey("ToEmailAddress") ? data["ToEmailAddress"].ToString() : "Unknown";
+                DynamicTableEntity entity = new DynamicTableEntity(partitionKey, rowKey);
 
-        //}
+                // Add properties to the entity dynamically
+                foreach (var kvp in data)
+                {
+                    entity.Properties.Add(kvp.Key, EntityProperty.CreateEntityPropertyFromObject(kvp.Value));
+                }
+
+                batchOperation.Insert(entity);
+            }
+            await table.ExecuteBatchAsync(batchOperation);
+        }
 
         private async Task<string> GetAccessToken()
         {
