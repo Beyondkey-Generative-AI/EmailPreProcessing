@@ -45,21 +45,11 @@ namespace EmailManagementAPI.Controllers
                     DateTime oneDayAgo = DateTime.UtcNow.AddDays(-1);
                     string formattedDate = oneDayAgo.ToString("yyyy-MM-ddTHH:mm:ssZ");
 
-
-                    //string excludeJunkFilter = "$filter=receivedDateTime ge " + formattedDate + " and not categories/any(c: c eq 'Junk')";
-                    //string toEmailFilter = "$toRecipients/any(r: r/emailAddress/address eq 'contact@beyondkey.com' or contains(r/emailAddress/address, 'contact') or contains(r/emailAddress/address, 'Beyondkey Contact Us'))";
-                    //string requestUrl = $"{graphApiEndpoint}/users/{sharedMailboxId}/messages?{excludeJunkFilter}&{toEmailFilter}&$orderby=receivedDateTime desc";
-
                     string excludeJunkFilter = "$filter=receivedDateTime ge " + formattedDate + " and not categories/any(c: c eq 'Junk')";
-                    string toEmailFilter = "$search=\"contact@beyondkey.com\" OR \"contact\" OR \"Beyondkey Contact Us\"";
+                    string recipientEmail = "contact@beyondkey.com";
                     string requestUrl = $"{graphApiEndpoint}/users/{sharedMailboxId}/messages?" +
-                          $"{excludeJunkFilter}" +
-                          $"&$toRecipients/any(r: r/emailAddress/address ne null and " +
-                          $"(contains(tolower(r/emailAddress/address), 'contact') " +
-                          $"or tolower(r/emailAddress/address) eq 'contact@beyondkey.com' " +
-                          $"or contains(tolower(r/emailAddress/address), 'beyondkey contact us')))" +
-                          $"&$orderby=receivedDateTime desc&$top=1000";
-
+                        $"{excludeJunkFilter}" +
+                        $"&$orderby=receivedDateTime desc&$top=1000";
 
 
                     var response = await httpClient.GetAsync(requestUrl);
@@ -85,8 +75,8 @@ namespace EmailManagementAPI.Controllers
                         foreach (var message in messages.value)
                         {// Extract the 'To' information from recipients array
                             var recipients = message.toRecipients;
-                            string toName = "";
-                            var toEmailAddress = "";
+                            string toName = string.Empty;
+                            var toEmailAddress = string.Empty;
                             if (recipients != null && recipients.HasValues)
                             {
                                 // For simplicity, assuming there's only one recipient in 'To' field.
@@ -95,7 +85,6 @@ namespace EmailManagementAPI.Controllers
                                 toEmailAddress = recipients[0]?.emailAddress?.address;
                             }
                             if (toEmailAddress.Trim().ToLower() != "contact@beyondkey.com") continue;
-                            // Extract the desired attributes from each message
                             var filteredAttributes = new
                             {
                                 EmailUniqueId = message.id,
@@ -108,22 +97,36 @@ namespace EmailManagementAPI.Controllers
                                 conversationId = message.conversationId,
                                 parentFolderId = message.parentFolderId,
                                 isRead = message.isRead,
-                                Body = message.body.content,
+                                Body = Utility.MaskSensitiveInformation(Convert.ToString(message.body.content)),
                                 Subject = message.subject
                             };
+
 
                             filteredAttributesList.Add(filteredAttributes);
                         }
 
-                        // Convert the list of filtered attributes to JSON
-                        var filteredJsonList = JsonConvert.SerializeObject(filteredAttributesList);
+                       
+                            // Convert the list of filtered attributes to JSON
+                            var filteredJsonList = JsonConvert.SerializeObject(filteredAttributesList);
                         foreach (var filteredAttributes in filteredAttributesList)
                         {
                             var ActualEmailBlobUrl = await UploadJsonToBlobAsync(filteredAttributes, containerClient);
-                            await SaveJsonToTableStorage(filteredAttributes, ActualEmailBlobUrl, tableClient);
-                        }
 
-                        // Return the filtered JSON response
+                            try
+                            {
+                                await ExecuteWithRetry(async () =>
+                                {
+                                    // Your Azure Table Storage operation here
+                                    await SaveJsonToTableStorage(filteredAttributes, ActualEmailBlobUrl, tableClient);
+                                }, maxAttempts: 3, retryInterval: TimeSpan.FromSeconds(1));
+                            }
+                            catch   (Exception ex)
+                            {
+                                var a = filteredAttributes;
+                                var b = ActualEmailBlobUrl;
+                            }
+                            //await SaveJsonToTableStorage(filteredAttributes, ActualEmailBlobUrl, tableClient);
+                        }
                         return Ok(filteredJsonList);
                     }
                     else
@@ -135,9 +138,18 @@ namespace EmailManagementAPI.Controllers
 
                 }
             }
-            catch (Exception ex) { return BadRequest(ex.Message); }
-        }
+            catch (Exception ex)
+            {
+                string errorMessage = $"An error occurred: {ex.Message}\nStack trace: {ex.StackTrace}";
+                return BadRequest(errorMessage);
+            }
 
+        }
+        private string GetEmailBodyContent(dynamic message)
+        {
+            string body = message.body.content;
+            return Utility.MaskSensitiveInformation(body);
+        }
         async Task<string> UploadJsonToBlobAsync(dynamic filteredAttributes, BlobContainerClient containerClient)
         {
             // Convert the current element to JSON
@@ -159,37 +171,71 @@ namespace EmailManagementAPI.Controllers
         }
 
 
-        private async Task SaveJsonToTableStorage(dynamic filteredAttributes,dynamic ActualEmailBlobUrl, CloudTableClient tableClient)
+        private async Task SaveJsonToTableStorage(dynamic filteredAttributes, dynamic ActualEmailBlobUrl, CloudTableClient tableClient)
         {
-                // Create or reference a table in Azure Table Storage
-                CloudTable table = tableClient.GetTableReference("EmailProcessed");
-                await table.CreateIfNotExistsAsync();
+            // Create or reference a table in Azure Table Storage
+            CloudTable table = tableClient.GetTableReference("EmailProcessed");
+            await table.CreateIfNotExistsAsync();
 
-                // Extract properties from the filteredAttributes object
-                string rowKey = filteredAttributes.EmailUniqueId;
-                string partitionKey = filteredAttributes.ToEmailAddress;
-                DynamicTableEntity entity = new DynamicTableEntity(partitionKey, rowKey);
-                var propertyName = "ActualEmailJsonLink";
-                var propertyValue = ActualEmailBlobUrl;
-                entity.Properties.Add(propertyName, EntityProperty.CreateEntityPropertyFromObject(propertyValue));
+            // Extract properties from the filteredAttributes object
+            string rowKey = filteredAttributes.EmailUniqueId;
+            string partitionKey = filteredAttributes.ToEmailAddress;
+            DynamicTableEntity entity = new DynamicTableEntity(partitionKey, rowKey);
+            var propertyName = "ActualEmailJsonLink";
+            var propertyValue = ActualEmailBlobUrl;
+            entity.Properties.Add(propertyName, EntityProperty.CreateEntityPropertyFromObject(propertyValue));
 
-                foreach (var property in filteredAttributes.GetType().GetProperties())
+            foreach (var property in filteredAttributes.GetType().GetProperties())
+            {
+                propertyName = property.Name;
+                propertyValue = property.GetValue(filteredAttributes, null);
+                if (property.Name == "Body")
                 {
-                    propertyName = property.Name;
-                    propertyValue = property.GetValue(filteredAttributes, null);
-                    if (property.Name == "Body")
-                    {
-                        string truncatedValue = propertyValue != null ? propertyValue.ToString().Substring(0, Math.Min(propertyValue.ToString().Length, 200)) : string.Empty;
-                        entity.Properties.Add(propertyName, EntityProperty.CreateEntityPropertyFromObject(truncatedValue));
-                    }
-                    else
-                        entity.Properties.Add(propertyName, EntityProperty.CreateEntityPropertyFromObject(propertyValue));
+                    int maxPropertySize = 5000; 
+                    string truncatedValue = propertyValue != null ? Utility.TruncateHtmlString(propertyValue.ToString(), maxPropertySize) : string.Empty;
+                    entity.Properties.Add(propertyName, EntityProperty.CreateEntityPropertyFromObject(truncatedValue));
                 }
+                else
+                {
+                    entity.Properties.Add(propertyName, EntityProperty.CreateEntityPropertyFromObject(propertyValue));
+                }
+                propertyValue = string.Empty;
+            }
 
-                TableOperation insertOperation = TableOperation.Insert(entity);
+            TableOperation insertOperation = TableOperation.Insert(entity);
 
-                await table.ExecuteAsync(insertOperation);
+            await table.ExecuteAsync(insertOperation);
         }
+
+        private async Task ExecuteWithRetry(Func<Task> operation, int maxAttempts, TimeSpan retryInterval)
+        {
+            int attempts = 0;
+
+            while (attempts < maxAttempts)
+            {
+                try
+                {
+                    await operation();
+                    return; // Operation succeeded, exit the loop
+                }
+                catch (Exception ex)
+                {
+                    // Log or handle the exception if needed
+                    Console.WriteLine($"Error: {ex.Message}");
+
+                    attempts++;
+
+                    if (attempts < maxAttempts)
+                    {
+                        await Task.Delay(retryInterval); // Wait for a specified interval before retrying
+                    }
+                }
+            }
+
+            throw new Exception($"Operation failed after {maxAttempts} attempts.");
+        }
+
+
 
 
         private async Task<string> GetAccessToken()
