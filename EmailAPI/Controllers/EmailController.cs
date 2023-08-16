@@ -45,9 +45,22 @@ namespace EmailManagementAPI.Controllers
                     DateTime oneDayAgo = DateTime.UtcNow.AddDays(-1);
                     string formattedDate = oneDayAgo.ToString("yyyy-MM-ddTHH:mm:ssZ");
 
-                    //var requestUrl = $"{graphApiEndpoint}/users/{sharedMailboxId}/messages?$filter=receivedDateTime ge {formattedDate}";
 
-                    var requestUrl = $"{graphApiEndpoint}/users/{sharedMailboxId}/messages?$filter=receivedDateTime ge {formattedDate}";
+                    //string excludeJunkFilter = "$filter=receivedDateTime ge " + formattedDate + " and not categories/any(c: c eq 'Junk')";
+                    //string toEmailFilter = "$toRecipients/any(r: r/emailAddress/address eq 'contact@beyondkey.com' or contains(r/emailAddress/address, 'contact') or contains(r/emailAddress/address, 'Beyondkey Contact Us'))";
+                    //string requestUrl = $"{graphApiEndpoint}/users/{sharedMailboxId}/messages?{excludeJunkFilter}&{toEmailFilter}&$orderby=receivedDateTime desc";
+
+                    string excludeJunkFilter = "$filter=receivedDateTime ge " + formattedDate + " and not categories/any(c: c eq 'Junk')";
+                    string toEmailFilter = "$search=\"contact@beyondkey.com\" OR \"contact\" OR \"Beyondkey Contact Us\"";
+                    string requestUrl = $"{graphApiEndpoint}/users/{sharedMailboxId}/messages?" +
+                          $"{excludeJunkFilter}" +
+                          $"&$toRecipients/any(r: r/emailAddress/address ne null and " +
+                          $"(contains(tolower(r/emailAddress/address), 'contact') " +
+                          $"or tolower(r/emailAddress/address) eq 'contact@beyondkey.com' " +
+                          $"or contains(tolower(r/emailAddress/address), 'beyondkey contact us')))" +
+                          $"&$orderby=receivedDateTime desc&$top=1000";
+
+
 
                     var response = await httpClient.GetAsync(requestUrl);
 
