@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "E:\\GitHubProjects\\EmailManagement\\EmailWeb\\EmailWeb.csproj": {}
+    "E:\\Projects\\EmailPreProcessing\\EmailWeb\\EmailWeb.csproj": {}
   },
   "projects": {
-    "E:\\GitHubProjects\\EmailManagement\\EmailWeb\\EmailWeb.csproj": {
+    "E:\\Projects\\EmailPreProcessing\\EmailWeb\\EmailWeb.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\GitHubProjects\\EmailManagement\\EmailWeb\\EmailWeb.csproj",
+        "projectUniqueName": "E:\\Projects\\EmailPreProcessing\\EmailWeb\\EmailWeb.csproj",
         "projectName": "EmailWeb",
-        "projectPath": "E:\\GitHubProjects\\EmailManagement\\EmailWeb\\EmailWeb.csproj",
+        "projectPath": "E:\\Projects\\EmailPreProcessing\\EmailWeb\\EmailWeb.csproj",
         "packagesPath": "C:\\Users\\Deepak\\.nuget\\packages\\",
-        "outputPath": "E:\\GitHubProjects\\EmailManagement\\EmailWeb\\obj\\",
+        "outputPath": "E:\\Projects\\EmailPreProcessing\\EmailWeb\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Deepak\\AppData\\Roaming\\NuGet\\NuGet.Config",

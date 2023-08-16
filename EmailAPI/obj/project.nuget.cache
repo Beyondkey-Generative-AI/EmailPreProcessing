@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "EpRjRWpKmISHwbrNGjcR/zaVdHypJdmlA8C/6btHVCPA7CYOVFodnKMCqK3e9zw6DFZnbfc2zVJVzUtrPFyy1g==",
+  "dgSpecHash": "JW0n3gZmY0SosXk3MFlcV/0e9iNecvd72C2tc3b/rdiO6Mkwrc9pvsY78VABxsv0YmFukvFD83UahP+vfAVbLA==",
   "success": true,
-  "projectFilePath": "E:\\GitHubProjects\\EmailManagement\\EmailAPI\\EmailManagementAPI.csproj",
+  "projectFilePath": "E:\\Projects\\EmailPreProcessing\\EmailAPI\\EmailManagementAPI.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Deepak\\.nuget\\packages\\azure.core\\1.33.0\\azure.core.1.33.0.nupkg.sha512",
     "C:\\Users\\Deepak\\.nuget\\packages\\azure.identity\\1.9.0\\azure.identity.1.9.0.nupkg.sha512",

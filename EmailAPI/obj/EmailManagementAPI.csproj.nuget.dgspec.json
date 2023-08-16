@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "E:\\GitHubProjects\\EmailManagement\\EmailAPI\\EmailManagementAPI.csproj": {}
+    "E:\\Projects\\EmailPreProcessing\\EmailAPI\\EmailManagementAPI.csproj": {}
   },
   "projects": {
-    "E:\\GitHubProjects\\EmailManagement\\EmailAPI\\EmailManagementAPI.csproj": {
+    "E:\\Projects\\EmailPreProcessing\\EmailAPI\\EmailManagementAPI.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\GitHubProjects\\EmailManagement\\EmailAPI\\EmailManagementAPI.csproj",
+        "projectUniqueName": "E:\\Projects\\EmailPreProcessing\\EmailAPI\\EmailManagementAPI.csproj",
         "projectName": "EmailManagementAPI",
-        "projectPath": "E:\\GitHubProjects\\EmailManagement\\EmailAPI\\EmailManagementAPI.csproj",
+        "projectPath": "E:\\Projects\\EmailPreProcessing\\EmailAPI\\EmailManagementAPI.csproj",
         "packagesPath": "C:\\Users\\Deepak\\.nuget\\packages\\",
-        "outputPath": "E:\\GitHubProjects\\EmailManagement\\EmailAPI\\obj\\",
+        "outputPath": "E:\\Projects\\EmailPreProcessing\\EmailAPI\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Deepak\\AppData\\Roaming\\NuGet\\NuGet.Config",
