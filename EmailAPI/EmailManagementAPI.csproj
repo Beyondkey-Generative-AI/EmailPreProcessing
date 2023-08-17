@@ -55,10 +55,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Models\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Include="bin\Debug\net6.0\Azure.Core.dll" />
     <None Include="bin\Debug\net6.0\Azure.Identity.dll" />
     <None Include="bin\Debug\net6.0\EmailManagementAPI.dll" />

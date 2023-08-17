@@ -88,8 +88,8 @@ namespace EmailManagementAPI.Controllers
                             var filteredAttributes = new
                             {
                                 EmailUniqueId = message.id,
-                                EmailCreatedDateTime = message.receivedDateTime,
-                                HasAttachment = message.hasAttachments,
+                                EmailCreatedDateTime = ((DateTime)message.receivedDateTime).ToUniversalTime(),
+                                HasAttachment = message.hasAttachments==null?false:Convert.ToBoolean(message.hasAttachments),
                                 FromName = "Deepak Sharma",// message.from?.emailAddress?.name,
                                 FromEmailAddress = "deepak.sharma@beyondkey.com",// message.from?.emailAddress?.address,
                                 ToName = toName,
@@ -105,27 +105,17 @@ namespace EmailManagementAPI.Controllers
                             filteredAttributesList.Add(filteredAttributes);
                         }
 
-                       
-                            // Convert the list of filtered attributes to JSON
-                            var filteredJsonList = JsonConvert.SerializeObject(filteredAttributesList);
+
+                        // Convert the list of filtered attributes to JSON
+                        var filteredJsonList = JsonConvert.SerializeObject(filteredAttributesList);
                         foreach (var filteredAttributes in filteredAttributesList)
                         {
                             var ActualEmailBlobUrl = await UploadJsonToBlobAsync(filteredAttributes, containerClient);
-
-                            try
+                            await ExecuteWithRetry(async () =>
                             {
-                                await ExecuteWithRetry(async () =>
-                                {
-                                    // Your Azure Table Storage operation here
-                                    await SaveJsonToTableStorage(filteredAttributes, ActualEmailBlobUrl, tableClient);
-                                }, maxAttempts: 3, retryInterval: TimeSpan.FromSeconds(1));
-                            }
-                            catch   (Exception ex)
-                            {
-                                var a = filteredAttributes;
-                                var b = ActualEmailBlobUrl;
-                            }
-                            //await SaveJsonToTableStorage(filteredAttributes, ActualEmailBlobUrl, tableClient);
+                                // Your Azure Table Storage operation here
+                                await SaveJsonToTableStorage(filteredAttributes, ActualEmailBlobUrl, tableClient);
+                            }, maxAttempts: 3, retryInterval: TimeSpan.FromSeconds(1));
                         }
                         return Ok(filteredJsonList);
                     }
@@ -191,7 +181,7 @@ namespace EmailManagementAPI.Controllers
                 propertyValue = property.GetValue(filteredAttributes, null);
                 if (property.Name == "Body")
                 {
-                    int maxPropertySize = 5000; 
+                    int maxPropertySize = 5000;
                     string truncatedValue = propertyValue != null ? Utility.TruncateHtmlString(propertyValue.ToString(), maxPropertySize) : string.Empty;
                     entity.Properties.Add(propertyName, EntityProperty.CreateEntityPropertyFromObject(truncatedValue));
                 }
