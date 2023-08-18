@@ -7,6 +7,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EmailWeb", "EmailWeb\EmailW
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EmailManagementAPI", "EmailAPI\EmailManagementAPI.csproj", "{6EBB82AE-7F4D-4B13-9D47-4B968659A371}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BusinessLayer", "BusinessLayer\BusinessLayer.csproj", "{81D40505-5E1C-49DC-A85C-838758FEAB3C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommonLayer", "CommonLayer\CommonLayer.csproj", "{88CD963E-3478-41EB-8B96-0D54357DF32B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +25,14 @@ Global
 		{6EBB82AE-7F4D-4B13-9D47-4B968659A371}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6EBB82AE-7F4D-4B13-9D47-4B968659A371}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6EBB82AE-7F4D-4B13-9D47-4B968659A371}.Release|Any CPU.Build.0 = Release|Any CPU
+		{81D40505-5E1C-49DC-A85C-838758FEAB3C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{81D40505-5E1C-49DC-A85C-838758FEAB3C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{81D40505-5E1C-49DC-A85C-838758FEAB3C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{81D40505-5E1C-49DC-A85C-838758FEAB3C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{88CD963E-3478-41EB-8B96-0D54357DF32B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{88CD963E-3478-41EB-8B96-0D54357DF32B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{88CD963E-3478-41EB-8B96-0D54357DF32B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{88CD963E-3478-41EB-8B96-0D54357DF32B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

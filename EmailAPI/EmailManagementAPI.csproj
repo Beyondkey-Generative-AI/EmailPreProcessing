@@ -155,4 +155,9 @@
     <None Include="obj\Release\net6.0\EmailManagementAPI.assets.cache" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\BusinessLayer\BusinessLayer.csproj" />
+    <ProjectReference Include="..\CommonLayer\CommonLayer.csproj" />
+  </ItemGroup>
+
 </Project>

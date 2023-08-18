@@ -1,8 +1,8 @@
 ﻿using HtmlAgilityPack;
 using System.Text.RegularExpressions;
+using System.Xml;
 
-
-namespace EmailManagementAPI
+namespace CommonLayer
 {
     public static class Utility
     {
@@ -73,6 +73,33 @@ namespace EmailManagementAPI
                 return maskedInput;
             }
             catch { return "err"; }
+        }
+        public static async Task ExecuteWithRetry(Func<Task> operation, int maxAttempts, TimeSpan retryInterval)
+        {
+            int attempts = 0;
+
+            while (attempts < maxAttempts)
+            {
+                try
+                {
+                    await operation();
+                    return; // Operation succeeded, exit the loop
+                }
+                catch (Exception ex)
+                {
+                    // Log or handle the exception if needed
+                    Console.WriteLine($"Error: {ex.Message}");
+
+                    attempts++;
+
+                    if (attempts < maxAttempts)
+                    {
+                        await Task.Delay(retryInterval); // Wait for a specified interval before retrying
+                    }
+                }
+            }
+
+            throw new Exception($"Operation failed after {maxAttempts} attempts.");
         }
     }
 }
