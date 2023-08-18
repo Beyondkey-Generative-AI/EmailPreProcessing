@@ -23,13 +23,6 @@ namespace EmailManagementAPI.Controllers
     [ApiController]
     public class EmailController : Controller
     {
-        private readonly IConfiguration _configuration;
-
-        public EmailController(IConfiguration configuration)
-        {
-            _configuration = configuration;
-        }
-
         [HttpGet]
         [Route("GetSharedEmail")]
         [ProducesResponseType(200, Type = typeof(string))]
@@ -38,7 +31,7 @@ namespace EmailManagementAPI.Controllers
         {
             try
             {
-                var emailBusiness = new EmailBusiness(_configuration);
+                var emailBusiness = new EmailBusiness();
                 var graphApiEndpoint = "https://graph.microsoft.com/v1.0";
                 var sharedMailboxId = "emailpreprocessing@beyondkey.com";
                 var accessToken = await emailBusiness.GetAccessToken();

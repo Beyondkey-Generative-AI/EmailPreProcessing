@@ -8,7 +8,6 @@ namespace DataAccessLayer
     public class StorageManager
     {
         private readonly IConfiguration _configuration;
-
         public StorageManager(IConfiguration configuration)
         {
             _configuration = configuration;

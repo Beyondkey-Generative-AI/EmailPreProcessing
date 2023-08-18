@@ -7,16 +7,20 @@ using Microsoft.Identity.Client;
 using DataAccessLayer;
 using Microsoft.Extensions.Configuration;
 
+
 namespace BusinessLayer
 {
     public class EmailBusiness
     {
-        public EmailBusiness() { }
-        private readonly IConfiguration _configuration;
+
         private readonly StorageManager _storageManager;
-        public EmailBusiness(IConfiguration configuration)
+        public EmailBusiness()
         {
-            _configuration = configuration;
+            var configuration = new ConfigurationBuilder()
+                  .SetBasePath(Directory.GetCurrentDirectory())
+                  .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                  .Build();
+            // Create an instance of StorageManager
             _storageManager = new StorageManager(configuration);
         }
         public async Task<string> GetAccessToken()
