@@ -12,6 +12,9 @@ using Microsoft.WindowsAzure.Storage.Table;
 using BusinessLayer;
 using CommonLayer;
 using System.Dynamic;
+using Microsoft.Azure.Documents;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.Graph.Models.ExternalConnectors;
 
 namespace EmailManagementAPI.Controllers
 {
@@ -35,10 +38,11 @@ namespace EmailManagementAPI.Controllers
         {
             try
             {
-                var emailBusiness = new EmailBusiness();
+                var emailBusiness = new EmailBusiness(_configuration);
                 var graphApiEndpoint = "https://graph.microsoft.com/v1.0";
                 var sharedMailboxId = "emailpreprocessing@beyondkey.com";
                 var accessToken = await emailBusiness.GetAccessToken();
+                //string lastProcessedEmailId = LoadLastProcessedEmailId();
                 using (var httpClient = new HttpClient())
                 {
                     httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
@@ -48,7 +52,6 @@ namespace EmailManagementAPI.Controllers
                     string formattedDate = oneDayAgo.ToString("yyyy-MM-ddTHH:mm:ssZ");
 
                     string excludeJunkFilter = "$filter=receivedDateTime ge " + formattedDate + " and not categories/any(c: c eq 'Junk')";
-                    string recipientEmail = "contact@beyondkey.com";
                     string requestUrl = $"{graphApiEndpoint}/users/{sharedMailboxId}/messages?" +
                         $"{excludeJunkFilter}" +
                         $"&$orderby=receivedDateTime desc&$top=1000";
@@ -58,14 +61,6 @@ namespace EmailManagementAPI.Controllers
 
                     if (response.IsSuccessStatusCode)
                     {
-                        string connectionString = _configuration.GetConnectionString("BlobStorageConnection");
-                        CloudStorageAccount storageAccount = CloudStorageAccount.Parse(connectionString);
-                        CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
-
-                        string containerName = _configuration.GetSection("StorageContainer:ContainerProcessedEmail").Value;
-                        BlobServiceClient blobServiceClient = new BlobServiceClient(connectionString);
-                        BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(containerName);
-
                         var content = await response.Content.ReadAsStringAsync();
 
                         // Deserialize the JSON response into objects
@@ -104,19 +99,20 @@ namespace EmailManagementAPI.Controllers
                             };
                             filteredAttributesList.Add(filteredAttributes);
                         }
-
+                        var lastProcessedEmailUniqueId = string.Empty;
                         // Convert the list of filtered attributes to JSON
                         var filteredJsonList = JsonConvert.SerializeObject(filteredAttributesList);
                         foreach (var filteredAttributes in filteredAttributesList)
                         {
-                                var ActualEmailBlobUrl = await emailBusiness.UploadJsonToBlobAsync(filteredAttributes, containerClient);
+                                var ActualEmailBlobUrl = await emailBusiness.UploadJsonToBlobAsync(filteredAttributes);
                                 await Utility.ExecuteWithRetry(async () =>
                                 {
                                     // Your Azure Table Storage operation here
-                                    await emailBusiness.SaveJsonToTableStorage(filteredAttributes, ActualEmailBlobUrl, tableClient);
+                                    await emailBusiness.SaveJsonToTableStorage(filteredAttributes, ActualEmailBlobUrl);
                                 }, maxAttempts: 3, retryInterval: TimeSpan.FromSeconds(1));
+                            //lastProcessedEmailId = filteredAttributes.EmailUniqueId;
                         }
-
+                       
                         return Ok(filteredJsonList);
                     }
                     else

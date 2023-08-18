@@ -4,11 +4,21 @@ using Newtonsoft.Json;
 using System.Text;
 using CommonLayer;
 using Microsoft.Identity.Client;
+using DataAccessLayer;
+using Microsoft.Extensions.Configuration;
 
 namespace BusinessLayer
 {
     public class EmailBusiness
     {
+        public EmailBusiness() { }
+        private readonly IConfiguration _configuration;
+        private readonly StorageManager _storageManager;
+        public EmailBusiness(IConfiguration configuration)
+        {
+            _configuration = configuration;
+            _storageManager = new StorageManager(configuration);
+        }
         public async Task<string> GetAccessToken()
         {
             //string clientId = "api://82f931e4-60f4-49e9-9ef9-22d1ee859aa6";
@@ -34,8 +44,9 @@ namespace BusinessLayer
 
             return authenticationResult.AccessToken;
         }
-        public async Task<string> UploadJsonToBlobAsync(dynamic filteredAttributes, BlobContainerClient containerClient)
+        public async Task<string> UploadJsonToBlobAsync(dynamic filteredAttributes)
         {
+            var containerClient = _storageManager.GetBlobContainerClient();
             // Convert the current element to JSON
             var filteredJson = JsonConvert.SerializeObject(filteredAttributes);
             // Generate a unique blob name for each JSON file based on EmailUniqueId
@@ -53,9 +64,9 @@ namespace BusinessLayer
             string blobUrl = blobClient.Uri.ToString();
             return blobUrl;
         }
-        public async Task SaveJsonToTableStorage(dynamic filteredAttributes, dynamic ActualEmailBlobUrl, CloudTableClient tableClient)
+        public async Task SaveJsonToTableStorage(dynamic filteredAttributes, dynamic ActualEmailBlobUrl)
         {
-            // Create or reference a table in Azure Table Storage
+            var tableClient = _storageManager.GetCloudTableClient();
             CloudTable table = tableClient.GetTableReference("EmailProcessed");
             await table.CreateIfNotExistsAsync();
 
@@ -66,7 +77,9 @@ namespace BusinessLayer
             var propertyName = "ActualEmailJsonLink";
             var propertyValue = ActualEmailBlobUrl;
             entity.Properties.Add(propertyName, EntityProperty.CreateEntityPropertyFromObject(propertyValue));
-
+            propertyName = "IsProcessed";
+            propertyValue = false;
+            entity.Properties.Add(propertyName, EntityProperty.CreateEntityPropertyFromObject(propertyValue));
             foreach (var property in filteredAttributes.GetType().GetProperties())
             {
                 propertyName = property.Name;
@@ -88,5 +101,18 @@ namespace BusinessLayer
 
             await table.ExecuteAsync(insertOperation);
         }
+        //public async Task<string> GetLastProcessedEmailId(string partitionKey, string rowKey)
+        //{
+        //    CloudTable table = _tableClient.GetTableReference(tableName);
+
+        //    var retrieveOperation = TableOperation.Retrieve<EmailTableEntity>(partitionKey, rowKey);
+        //    var retrieveResult = await table.ExecuteAsync(retrieveOperation);
+        //    if (retrieveResult.Result is EmailTableEntity entity)
+        //    {
+        //        return entity.LastReadEmailUniqueId;
+        //    }
+
+        //    return null;
+        //}
     }
 }
